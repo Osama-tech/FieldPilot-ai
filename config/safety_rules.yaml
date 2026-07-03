@@ -1,0 +1,4 @@
+max_wind_speed_kmh: 24
+max_precipitation_mm: 5
+min_temperature_c: 5
+max_temperature_c: 35
