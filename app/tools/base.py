@@ -1,12 +1,12 @@
+"""Abstraction for all agent tools. Every tool implements execute()
+so the Agent can invoke any tool through the same interface."""
+
 from abc import ABC, abstractmethod
-from typing import Any
 
 from app.domain.models import ToolResult
 
 
-class BaseTool(ABC):
-    name: str
-
+class Tool(ABC):
     @abstractmethod
-    def execute(self, **kwargs: Any) -> ToolResult:
-        ...
+    def execute(self, input_data: dict) -> ToolResult:
+        raise NotImplementedError
