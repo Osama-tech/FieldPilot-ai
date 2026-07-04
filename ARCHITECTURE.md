@@ -1,8 +1,5 @@
 # FieldPilot AI — Architecture Document
 
-**Status:** Phase 0 Complete — Requirements & Architecture Locked
-**Target role reference:** AI Systems Engineer @ Precision AI (agentic AI, tool calling, production deployment, agriculture domain)
-
 ---
 
 ## 1. Vision
@@ -167,6 +164,7 @@ fieldpilot-ai/
 
 | Component | Choice | Rationale |
 |---|---|---|
+| Python version | 3.12, enforced via `.python-version` and `pyproject.toml` `requires-python` | Required by `google-genai` (>=3.10 minimum); 3.12 chosen over the minimum for a longer security-support window. All commands are run via `uv run` to guarantee the correct interpreter and dependency set are used. |
 | LLM Provider | Gemini 2.5 Flash (`google-genai` SDK) | Free tier supports function calling + structured outputs (verified July 2026); cost-optimized for learning. **Trade-off accepted:** free-tier prompts/responses may be used by Google to improve their products — acceptable for this non-sensitive demo project, not appropriate for production data. Isolated behind `LLMClient` so the provider can change with minimal blast radius. |
 | Package manager | `uv` | Fast, unifies venv + dependency management, current industry direction (2025–2026) |
 | Web framework | FastAPI | Async-native, Pydantic-integrated, industry standard for Python AI services |
