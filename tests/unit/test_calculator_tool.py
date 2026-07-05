@@ -17,3 +17,12 @@ def test_execute_rejects_negative_size() -> None:
 
     assert result.success is False
     assert result.error_message is not None
+
+
+def test_execute_rejects_zero_rate() -> None:
+    tool = CalculatorTool()
+
+    result = tool.execute({"size_hectares": 5, "spray_rate_liters_per_hectare": 0})
+
+    assert result.success is False
+    assert result.error_message is not None
