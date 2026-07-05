@@ -2,18 +2,18 @@
 
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class WeatherData(BaseModel):
-    wind_speed_kmh: float
-    precipitation_mm: float
+    wind_speed_kmh: float = Field(ge=0)
+    precipitation_mm: float = Field(ge=0)
     temperature_c: float
 
 
 class FieldInfo(BaseModel):
-    field_id: str
-    size_hectares: float
+    field_id: str = Field(min_length=1)
+    size_hectares: float = Field(gt=0)
     crop_type: str
 
 
