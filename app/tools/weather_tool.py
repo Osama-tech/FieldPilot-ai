@@ -1,12 +1,10 @@
-"""Weather tool: fetches current conditions for a location from Open-Meteo."""
+"""Weather tool: validates input and delegates to WeatherAPIClient."""
 
-import httpx
 from pydantic import BaseModel, Field, ValidationError
 
-from app.domain.models import ToolResult, WeatherData
+from app.domain.models import ToolResult
+from app.infrastructure.weather_api_client import WeatherAPIClient, WeatherAPIError
 from app.tools.base import Tool
-
-OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 
 class WeatherInput(BaseModel):
@@ -15,33 +13,20 @@ class WeatherInput(BaseModel):
 
 
 class WeatherTool(Tool):
+    def __init__(self, weather_api_client: WeatherAPIClient) -> None:
+        self._weather_api_client = weather_api_client
+
     async def execute(self, input_data: dict) -> ToolResult:
         try:
             parsed = WeatherInput(**input_data)
         except ValidationError as e:
             return ToolResult(success=False, error_message=str(e))
 
-        params = {
-            "latitude": parsed.latitude,
-            "longitude": parsed.longitude,
-            "current": "temperature_2m,precipitation,wind_speed_10m",
-        }
-
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.get(OPEN_METEO_URL, params=params)
-                response.raise_for_status()
-        except httpx.HTTPError as e:
-            return ToolResult(success=False, error_message=str(e))
-
-        try:
-            current = response.json()["current"]
-            weather = WeatherData(
-                wind_speed_kmh=current["wind_speed_10m"],
-                precipitation_mm=current["precipitation"],
-                temperature_c=current["temperature_2m"],
+            weather = await self._weather_api_client.fetch_weather(
+                parsed.latitude, parsed.longitude
             )
-        except (KeyError, ValidationError) as e:
-            return ToolResult(success=False, error_message=f"Unexpected response format: {e}")
+        except WeatherAPIError as e:
+            return ToolResult(success=False, error_message=str(e))
 
         return ToolResult(success=True, data=weather.model_dump())
