@@ -8,5 +8,5 @@ from app.domain.models import ToolResult
 
 class Tool(ABC):
     @abstractmethod
-    def execute(self, input_data: dict) -> ToolResult:
+    async def execute(self, input_data: dict) -> ToolResult:
         raise NotImplementedError

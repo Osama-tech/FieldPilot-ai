@@ -12,7 +12,7 @@ class CalculatorInput(BaseModel):
 
 
 class CalculatorTool(Tool):
-    def execute(self, input_data: dict) -> ToolResult:
+    async def execute(self, input_data: dict) -> ToolResult:
         try:
             parsed = CalculatorInput(**input_data)
         except ValidationError as e:
