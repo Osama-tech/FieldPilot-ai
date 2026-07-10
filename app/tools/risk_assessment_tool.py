@@ -24,7 +24,7 @@ class RiskAssessmentTool(Tool):
             min_temp = rules["min_temperature_c"]
             max_temp = rules["max_temperature_c"]
         except KeyError as e:
-            return ToolResult(success=False, error_message=f"Missing safety rule: {e}")
+            return ToolResult(success=False, error_message=f"Missing safety rule: {e.args[0]}")
 
         contributing_factors = []
         violations = 0
@@ -67,9 +67,14 @@ class RiskAssessmentTool(Tool):
         else:
             decision = "not_safe"
 
+        total_checks = len(contributing_factors)
+
         recommendation = SprayRecommendation(
             decision=decision,
-            reasoning=f"{violations} safety rule(s) violated out of 3 checks.",
+            reasoning=(
+                f"{violations} safety rule(s) violated "
+                f"out of {total_checks} checks."
+            ),
             contributing_factors=contributing_factors,
         )
 
