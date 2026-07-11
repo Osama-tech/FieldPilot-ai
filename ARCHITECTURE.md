@@ -76,14 +76,14 @@ Infrastructure is depended upon (via abstractions) by Agent/Tools/Domain, never 
 - Example: `tools/risk_assessment_tool.py` uses `RuleProvider` to fetch current safety thresholds.
 
 ### Domain Layer (`app/domain/`)
-- **Owns:** data models (`Field`, `WeatherData`, `SprayRecommendation`) and abstractions like `RuleProvider`.
+- **Owns:** data models (`Field`, `WeatherData`, `SprayRecommendation`), abstractions like `RuleProvider`, and the provider-neutral `LLMClient` abstraction with its message/response contracts (`llm_types.py`).
 - **Must not own:** anything technical/external — no FastAPI, no HTTP, no SDKs.
-- Example: `domain/models.py`, `domain/rule_provider.py` (abstract interface only).
+- Example: `domain/models.py`, `domain/rule_provider.py`, `domain/llm_client.py` + `domain/llm_types.py` (abstract interfaces and contracts only — no provider SDK imports).
 
 ### Infrastructure Layer (`app/infrastructure/`)
-- **Owns:** all external-world communication — LLM client, weather API client, config loading, logging.
-- **Must not own:** business decisions, knowledge of Agent/API layers.
-- Example: `infrastructure/llm_client.py` (`LLMClient` abstract + `OpenAILLMClient` implementation), `infrastructure/config_rule_provider.py` (concrete `RuleProvider` reading YAML — the piece that gets swapped for RAG later).
+- **Owns:** all external-world communication — concrete LLM provider clients, weather API client, config loading, logging.
+- **Must not own:** business decisions, knowledge of Agent/API layers, or the `LLMClient`/`RuleProvider` abstractions themselves (those belong to Domain).
+- Example: `infrastructure/gemini_llm_client.py` (concrete `GeminiLLMClient`, implementing Domain's `LLMClient`), `infrastructure/config_rule_provider.py` (concrete `RuleProvider` reading YAML — the piece that gets swapped for RAG later).
 
 ---
 
@@ -92,8 +92,14 @@ Infrastructure is depended upon (via abstractions) by Agent/Tools/Domain, never 
 **Decision: `RuleProvider` abstraction for safety rules**
 Rules are read through an interface, not hardcoded inside the Risk Assessment tool. MVP implementation reads from `config/safety_rules.yaml`. This is the designed seam for the future RAG upgrade — swapping the implementation should require zero changes to the Tools or Agent layers.
 
-**Decision: `LLMClient` abstraction in Infrastructure**
-The Agent layer depends on an `LLMClient` interface, never directly on the OpenAI or Anthropic SDK. If the provider changes, most changes stay in `infrastructure/llm_client.py`. Note: if a new provider has materially different tool-calling behavior, minimal *parsing/normalization* changes may leak into the Agent layer — the abstraction reduces blast radius, it does not guarantee zero change.
+**Decision: `LLMClient` abstraction lives in Domain, not Infrastructure**
+The interface (`LLMClient`, `llm_types.py`) is owned by Domain, since the Agent layer must be able to depend on it without reaching into Infrastructure directly — the same Dependency Inversion reasoning already applied to `RuleProvider`. Only the concrete provider implementation (`GeminiLLMClient`) lives in Infrastructure. If the provider changes, changes stay contained to its Infrastructure implementation. Note: if a new provider has materially different tool-calling behavior, minimal *parsing/normalization* changes may leak into that implementation — the abstraction reduces blast radius, it does not guarantee zero change.
+
+**Decision: `LLMMessage`/`LLMResponse` are discriminated unions, not single flexible models**
+Each conversation-turn type (`UserMessage`, `ModelTextMessage`, `ModelToolCallMessage`, `ToolResultMessage`) and response type (`LLMFinalTextResponse`, `LLMToolCallResponse`) is its own Pydantic model with only the fields relevant to it, joined via a `kind`-discriminated `Union`, with `extra="forbid"` enforced on every variant. This makes invalid field combinations (e.g. a user message carrying a tool result) unrepresentable by construction, rather than relying on validator functions that must be manually kept in sync.
+
+**Decision: a single LLM turn may request multiple tool calls**
+`LLMToolCallResponse.tool_calls` and `ModelToolCallMessage.tool_calls` are lists (`min_length=1`), not single values, since Gemini's API can legitimately return multiple function calls in one turn. All returned calls are captured; none are silently dropped.
 
 **Decision: No dedicated `services/` layer**
 The Agent layer already serves as the orchestration/service layer. Adding a separate `services/` layer on top would be indirection without a distinct responsibility.
@@ -125,9 +131,11 @@ fieldpilot-ai/
 │   │   └── risk_assessment_tool.py
 │   ├── domain/
 │   │   ├── models.py
-│   │   └── rule_provider.py
+│   │   ├── rule_provider.py
+│   │   ├── llm_client.py
+│   │   └── llm_types.py
 │   └── infrastructure/
-│       ├── llm_client.py
+│       ├── gemini_llm_client.py
 │       ├── weather_api_client.py
 │       ├── config_rule_provider.py
 │       ├── config.py
@@ -165,7 +173,7 @@ fieldpilot-ai/
 | Component | Choice | Rationale |
 |---|---|---|
 | Python version | 3.12, enforced via `.python-version` and `pyproject.toml` `requires-python` | Required by `google-genai` (>=3.10 minimum); 3.12 chosen over the minimum for a longer security-support window. All commands are run via `uv run` to guarantee the correct interpreter and dependency set are used. |
-| LLM Provider | Gemini 2.5 Flash (`google-genai` SDK) | Free tier supports function calling + structured outputs (verified July 2026); cost-optimized for learning. **Trade-off accepted:** free-tier prompts/responses may be used by Google to improve their products — acceptable for this non-sensitive demo project, not appropriate for production data. Isolated behind `LLMClient` so the provider can change with minimal blast radius. |
+| LLM Provider | Gemini (`google-genai` SDK), model `gemini-flash-lite-latest` | Free tier supports function calling + structured outputs. A rolling model alias was chosen over a pinned version, trading version stability for resilience against model deprecation. **Data policy trade-off:** free-tier prompts/responses may be used by Google to improve their products — acceptable for this non-sensitive demo project. Isolated behind `LLMClient` so the provider/model can change with minimal blast radius. |
 | Package manager | `uv` | Fast, unifies venv + dependency management, current industry direction (2025–2026) |
 | Web framework | FastAPI | Async-native, Pydantic-integrated, industry standard for Python AI services |
 | HTTP client | `httpx` | Async-compatible (unlike `requests`), required so external calls don't block the event loop |
