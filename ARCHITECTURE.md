@@ -181,6 +181,7 @@ fieldpilot-ai/
 ## 10. Explicitly Out of Scope for MVP
 
 - RAG / vector store / agriculture manuals (Phase 2)
+- Retry logic for transient network failures in tool API calls (e.g. `WeatherTool`) — deferred to the production-hardening phase alongside Docker/monitoring, since MVP tools fail visibly to a single user rather than running unattended
 - LangGraph / multi-step planning / memory (Phase 3)
 - Evaluation framework, monitoring, Docker, CI/CD (Phase 4)
 - Streaming responses, auth, cost-tracking dashboards

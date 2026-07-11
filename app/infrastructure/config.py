@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     environment: str = "local"
 
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-flash-lite-latest"
 
     safety_rules_path: str = "config/safety_rules.yaml"
 
