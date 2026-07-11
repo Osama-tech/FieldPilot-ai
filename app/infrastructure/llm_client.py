@@ -1,24 +1,15 @@
+"""Abstraction for LLM providers. Concrete implementations (e.g.
+GeminiLLMClient) translate provider-specific request/response formats
+into the neutral types defined in llm_types.py."""
+
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+
+from app.infrastructure.llm_types import LLMMessage, LLMResponse
 
 
 class LLMClient(ABC):
     @abstractmethod
-    async def chat_with_tools(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        ...
-
-
-class GeminiLLMClient(LLMClient):
-    def __init__(self, api_key: Optional[str]) -> None:
-        self._api_key = api_key
-
-    async def chat_with_tools(
-        self,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+    async def send_message(
+        self, conversation_history: list[LLMMessage], tools: list[dict]
+    ) -> LLMResponse:
         raise NotImplementedError
