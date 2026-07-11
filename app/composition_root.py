@@ -8,7 +8,7 @@ from app.agent.tool_registry import ToolRegistry
 from app.infrastructure.config import get_settings
 from app.infrastructure.config_rule_provider import ConfigRuleProvider
 from app.infrastructure.gemini_llm_client import GeminiLLMClient
-from app.infrastructure.llm_client import LLMClient
+from app.domain.llm_client import LLMClient
 from app.infrastructure.weather_api_client import WeatherAPIClient
 from app.tools.calculator_tool import CalculatorTool
 from app.tools.risk_assessment_tool import RiskAssessmentTool

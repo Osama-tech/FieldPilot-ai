@@ -4,8 +4,8 @@ neutral LLMMessage/LLMResponse contracts and the google-genai SDK's types."""
 from google import genai
 from google.genai import types
 
-from app.infrastructure.llm_client import LLMClient
-from app.infrastructure.llm_types import (
+from app.domain.llm_client import LLMClient
+from app.domain.llm_types import (
     LLMFinalTextResponse,
     LLMMessage,
     LLMResponse,
@@ -16,6 +16,10 @@ from app.infrastructure.llm_types import (
     ToolResultMessage,
     UserMessage,
 )
+
+
+class GeminiResponseError(Exception):
+    """Raised when Gemini returns a response with neither a tool call nor text content."""
 
 
 class GeminiLLMClient(LLMClient):
@@ -46,19 +50,15 @@ class GeminiLLMClient(LLMClient):
                     types.Content(role="model", parts=[types.Part(text=message.text)])
                 )
             elif isinstance(message, ModelToolCallMessage):
-                contents.append(
-                    types.Content(
-                        role="model",
-                        parts=[
-                            types.Part(
-                                function_call=types.FunctionCall(
-                                    name=message.tool_call.tool_name,
-                                    args=message.tool_call.arguments,
-                                )
-                            )
-                        ],
+                parts = [
+                    types.Part(
+                        function_call=types.FunctionCall(
+                            name=call.tool_name, args=call.arguments
+                        )
                     )
-                )
+                    for call in message.tool_calls
+                ]
+                contents.append(types.Content(role="model", parts=parts))
             elif isinstance(message, ToolResultMessage):
                 contents.append(
                     types.Content(
@@ -88,9 +88,15 @@ class GeminiLLMClient(LLMClient):
         )
 
         if response.function_calls:
-            call = response.function_calls[0]
-            return LLMToolCallResponse(
-                tool_call=LLMToolCallRequest(tool_name=call.name, arguments=dict(call.args))
-            )
+            tool_calls = [
+                LLMToolCallRequest(tool_name=call.name, arguments=dict(call.args))
+                for call in response.function_calls
+            ]
+            return LLMToolCallResponse(tool_calls=tool_calls)
 
-        return LLMFinalTextResponse(text=response.text)
+        if response.text:
+            return LLMFinalTextResponse(text=response.text)
+
+        raise GeminiResponseError(
+            "Gemini returned neither a tool call nor text content."
+        )

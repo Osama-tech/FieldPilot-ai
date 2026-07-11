@@ -1,7 +1,7 @@
 import pytest
 
 from app.infrastructure.gemini_llm_client import GeminiLLMClient
-from app.infrastructure.llm_types import LLMFinalTextResponse, LLMToolCallResponse, UserMessage
+from app.domain.llm_types import LLMFinalTextResponse, LLMToolCallResponse, UserMessage
 
 
 class FakeFunctionCall:
@@ -56,5 +56,26 @@ async def test_send_message_returns_tool_call_response() -> None:
     result = await llm_client.send_message([UserMessage(text="How much chemical?")], tools=[])
 
     assert isinstance(result, LLMToolCallResponse)
-    assert result.tool_call.tool_name == "calculator"
-    assert result.tool_call.arguments == {"size_hectares": 10}
+    assert len(result.tool_calls) == 1
+    assert result.tool_calls[0].tool_name == "calculator"
+    assert result.tool_calls[0].arguments == {"size_hectares": 10}
+
+@pytest.mark.asyncio
+async def test_send_message_returns_all_tool_calls() -> None:
+    fake_calls = [
+        FakeFunctionCall(name="weather", args={"latitude": 30.0, "longitude": 31.2}),
+        FakeFunctionCall(name="calculator", args={"size_hectares": 10}),
+    ]
+    fake_response = FakeGenerateContentResponse(function_calls=fake_calls)
+    fake_client = FakeGenaiClient(fake_response)
+    llm_client = GeminiLLMClient(client=fake_client, model="fake-model")
+
+    result = await llm_client.send_message(
+        [UserMessage(text="Can I spray and how much do I need?")],
+        tools=[],
+    )
+
+    assert isinstance(result, LLMToolCallResponse)
+    assert len(result.tool_calls) == 2
+    assert result.tool_calls[0].tool_name == "weather"
+    assert result.tool_calls[1].tool_name == "calculator"

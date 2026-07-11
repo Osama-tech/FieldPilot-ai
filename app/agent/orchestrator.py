@@ -1,5 +1,5 @@
 from app.domain.models import FieldInfo, SprayRecommendation
-from app.infrastructure.llm_client import LLMClient
+from app.domain.llm_client import LLMClient
 
 
 async def decide_spray_recommendation(

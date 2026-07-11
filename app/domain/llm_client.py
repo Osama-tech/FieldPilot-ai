@@ -4,7 +4,7 @@ into the neutral types defined in llm_types.py."""
 
 from abc import ABC, abstractmethod
 
-from app.infrastructure.llm_types import LLMMessage, LLMResponse
+from app.domain.llm_types import LLMMessage, LLMResponse
 
 
 class LLMClient(ABC):
