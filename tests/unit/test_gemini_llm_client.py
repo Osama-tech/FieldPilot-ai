@@ -1,7 +1,8 @@
 import pytest
 
-from app.infrastructure.gemini_llm_client import GeminiLLMClient
+from app.infrastructure.gemini_llm_client import GeminiLLMClient, GeminiResponseError
 from app.domain.llm_types import LLMFinalTextResponse, LLMToolCallResponse, UserMessage
+
 
 
 class FakeFunctionCall:
@@ -79,3 +80,13 @@ async def test_send_message_returns_all_tool_calls() -> None:
     assert len(result.tool_calls) == 2
     assert result.tool_calls[0].tool_name == "weather"
     assert result.tool_calls[1].tool_name == "calculator"
+
+
+@pytest.mark.asyncio
+async def test_send_message_raises_when_response_has_no_content() -> None:
+    fake_response = FakeGenerateContentResponse(text=None, function_calls=[])
+    fake_client = FakeGenaiClient(fake_response)
+    llm_client = GeminiLLMClient(client=fake_client, model="fake-model")
+
+    with pytest.raises(GeminiResponseError):
+        await llm_client.send_message([UserMessage(text="Is it safe?")], tools=[])

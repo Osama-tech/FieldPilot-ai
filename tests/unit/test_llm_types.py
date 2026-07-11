@@ -20,7 +20,9 @@ def test_user_message_requires_text() -> None:
 
 def test_message_adapter_rejects_mismatched_fields() -> None:
     with pytest.raises(ValidationError):
-        message_adapter.validate_python({"kind": "user", "tool_result": {"x": 1}})
+        message_adapter.validate_python(
+            {"kind": "user", "text": "Is it safe?", "tool_result": {"x": 1}}
+        )
 
 
 def test_message_adapter_parses_correct_kind() -> None:
