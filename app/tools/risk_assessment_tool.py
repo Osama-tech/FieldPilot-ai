@@ -12,6 +12,7 @@ class RiskAssessmentTool(Tool):
         self._rule_provider = rule_provider
 
     async def execute(self, input_data: dict) -> ToolResult:
+
         try:
             weather = WeatherData(**input_data)
         except ValidationError as e:
@@ -79,3 +80,11 @@ class RiskAssessmentTool(Tool):
         )
 
         return ToolResult(success=True, data=recommendation.model_dump())
+
+    def get_schema(self) -> dict:
+        return {
+            "name": "risk_assessment",
+            "description": "Evaluates current weather conditions against safety "
+            "rules to produce a spray recommendation (safe, conditional, or not_safe).",
+            "parameters": WeatherData.model_json_schema(),
+        }

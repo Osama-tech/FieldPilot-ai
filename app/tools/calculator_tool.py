@@ -20,3 +20,11 @@ class CalculatorTool(Tool):
 
         total_liters = parsed.size_hectares * parsed.spray_rate_liters_per_hectare
         return ToolResult(success=True, data={"total_liters": total_liters})
+
+    def get_schema(self) -> dict:
+        return {
+            "name": "calculator",
+            "description": "Calculates total chemical volume needed for a field, "
+            "given field size and spray rate.",
+            "parameters": CalculatorInput.model_json_schema(),
+        }

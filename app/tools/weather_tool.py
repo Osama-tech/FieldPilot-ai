@@ -30,3 +30,11 @@ class WeatherTool(Tool):
             return ToolResult(success=False, error_message=str(e))
 
         return ToolResult(success=True, data=weather.model_dump())
+
+    def get_schema(self) -> dict:
+        return {
+            "name": "weather",
+            "description": "Fetches current weather conditions (wind speed, "
+            "precipitation, temperature) for a given latitude and longitude.",
+            "parameters": WeatherInput.model_json_schema(),
+        }

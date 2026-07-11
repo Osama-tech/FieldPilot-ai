@@ -9,6 +9,9 @@ class DummyTool(Tool):
     async def execute(self, input_data: dict) -> ToolResult:
         return ToolResult(success=True, data={"called": True})
 
+    def get_schema(self) -> dict:
+        return {"name": "dummy", "description": "A test tool.", "parameters": {}}
+
 
 def test_get_returns_registered_tool() -> None:
     registry = ToolRegistry()
